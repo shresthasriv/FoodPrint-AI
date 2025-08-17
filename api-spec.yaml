@@ -1,0 +1,243 @@
+openapi: 3.0.0
+info:
+  title: Foodprint AI Backend API
+  description: Carbon Footprint Estimator for Food Dishes
+  version: 1.0.0
+  contact:
+    name: Reewild
+    url: https://reewild.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.foodprint.reewild.com
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 1.0.0
+                  environment:
+                    type: string
+                    example: development
+
+  /estimate:
+    post:
+      summary: Estimate carbon footprint from dish name
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - dish
+              properties:
+                dish:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  example: Chicken Biryani
+                  description: Name of the dish to analyze
+      responses:
+        '200':
+          description: Carbon footprint estimation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarbonEstimateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /estimate/image:
+    post:
+      summary: Estimate carbon footprint from food image
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Food image (JPEG, PNG, WebP, max 10MB)
+      responses:
+        '200':
+          description: Carbon footprint estimation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarbonEstimateResponse'
+        '400':
+          description: Invalid request or file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: AI service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    Ingredient:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Chicken
+        carbon_kg:
+          type: number
+          format: float
+          example: 2.5
+          description: Carbon footprint in kg CO2 equivalent
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          example: 0.9
+          description: Confidence score for the ingredient identification
+
+    CarbonEstimate:
+      type: object
+      properties:
+        dish:
+          type: string
+          example: Chicken Biryani
+        estimated_carbon_kg:
+          type: number
+          format: float
+          example: 4.2
+          description: Total estimated carbon footprint in kg CO2 equivalent
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        metadata:
+          type: object
+          properties:
+            processing_time_ms:
+              type: number
+              example: 1250
+            source:
+              type: string
+              enum: [text, image]
+              example: text
+
+    CarbonEstimateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CarbonEstimate'
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+              format: uuid
+            processing_time_ms:
+              type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid request data
+            details:
+              type: object
+              description: Additional error details
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+              format: uuid
