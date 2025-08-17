@@ -55,8 +55,14 @@ export const safeJsonParse = <T>(jsonString: string): T | null => {
   }
 };
 
-export const sanitizeTextInput = (input: string): string =>
-  input.trim().replace(/[<>]/g, '').slice(0, 200);
+export const sanitizeTextInput = (input: string): string => {
+  return input
+    .trim()
+    .replace(/[<>]/g, '')
+    .replace(/[\x00-\x1F\x7F]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 200);
+};
 
 export const findBestIngredientMatch = (
   ingredientName: string,
