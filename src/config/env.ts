@@ -7,6 +7,7 @@ const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
   PORT: Joi.number().port().default(3000),
   OPENAI_API_KEY: Joi.string().required(),
+  API_KEY_SECRET: Joi.string().min(32).required(),
 
   LOG_LEVEL: Joi.string().valid('error', 'warn', 'info', 'debug').default('info'),
   RATE_LIMIT_WINDOW_MS: Joi.number().positive().default(900000),
@@ -25,6 +26,9 @@ export const config = {
   port: envVars.PORT as number,
   openai: {
     apiKey: envVars.OPENAI_API_KEY as string,
+  },
+  auth: {
+    apiKeySecret: envVars.API_KEY_SECRET as string,
   },
 
   logging: {
